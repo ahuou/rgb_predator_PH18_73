@@ -1,5 +1,7 @@
 # pyPredator
 
+[![tests](https://github.com/ahuou/rgb_predator_PH18_73/actions/workflows/tests.yml/badge.svg)](https://github.com/ahuou/rgb_predator_PH18_73/actions/workflows/tests.yml)
+
 Linux replacement for Acer PredatorSense RGB keyboard control on the **Predator PH18-73**.
 One Python file, one dependency (`pyusb`), protocol reverse-engineered from USB captures.
 
