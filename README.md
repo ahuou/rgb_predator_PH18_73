@@ -1,18 +1,25 @@
 # pyPredator
 
 Linux replacement for Acer PredatorSense RGB keyboard control on the **Predator PH18-73**.
+One Python file, one dependency (`pyusb`), protocol reverse-engineered from USB captures.
+
+![pyPredator GUI cycling Wave, Fire, Pulse Scan, Gradient and Breathing](docs/media/pypredator-gui.gif)
+
+*The real GUI and effect engine, recorded headless with the USB layer stubbed out
+(see [tools/headless_demo.py](tools/headless_demo.py)). The live-preview strips show the
+exact 128 + 16 pixel frames that are streamed to the keyboard at 30 Hz.*
 
 Controls three lighting systems from a single GUI:
 - **Main keyboard** (128-pixel per-key RGB via USB HID)
 - **WASD / gaming keys** (16-pixel aux zone via USB HID)
-- **Infinity ring, cover logo, underglow bar** (via [linuxbest CLI](https://github.com/linuxbest/acer_PH18-73_rgb), included as submodule)
+- **Infinity ring, cover logo, underglow bar** (via the [acer_PH18-73_rgb CLI by linuxbest](https://github.com/linuxbest/acer_PH18-73_rgb), MIT, included as a git submodule; pyPredator only shells out to it)
 
 ## Quick start
 
 ```bash
 # 1. Clone (with submodule for ring/logo/bar support)
-git clone --recurse-submodules https://github.com/YOUR_USER/pypredator.git
-cd pypredator
+git clone --recurse-submodules https://github.com/ahuou/rgb_predator_PH18_73.git
+cd rgb_predator_PH18_73
 
 # 2. Install dependencies
 pip install pyusb
@@ -42,7 +49,7 @@ This is required once per machine. It will ask for your sudo password.
 
 This script has been carefully designed to **never interfere with your typing keyboard**:
 
-- **Interface 0 (typing keyboard) is never detached.** The code only touches USB interfaces 1 (bulk pixel data) and 3 (control reports). Interface 0 is explicitly protected throughout — the udev rule, the detach logic, and the HID dump command all skip it.
+- **Interface 0 (typing keyboard) is never detached.** The code only touches USB interfaces 1 (bulk pixel data) and 3 (control reports). Interface 0 is explicitly protected throughout: the udev rule, the detach logic, and the HID dump command all skip it.
 - **No `dev.reset()`.** Earlier versions used USB device reset as a fallback, which could momentarily kill all keyboard input. This has been removed.
 - **No `set_auto_detach_kernel_driver()`.** This libusb feature would silently detach interface 0 when claiming other interfaces. It is intentionally not used.
 - **Crash cleanup via `atexit`.** If the script crashes, an exit handler releases USB interfaces and re-attaches the kernel driver so nothing is left in a broken state.
@@ -63,11 +70,13 @@ python3 pypredator.py --dump-hid   # dump HID report descriptors (debug)
 
 ### GUI features
 
+<img src="docs/media/pypredator-gui.png" alt="pyPredator GUI, Wave effect" width="600">
+
 - **Effect modes:** Static, Breathing, Wave, Rainbow, Gradient, Strobe, Fire, Pulse Scan
 - **Separate WASD color:** Uncheck "sync WASD with main" to set an independent WASD color
 - **Color presets:** One-click RED, GREEN, BLUE, CYAN, MAGENTA, YELLOW, WHITE, OFF
 - **Brightness and speed** sliders
-- **System lights** (ring/logo/bar) — requires the `acer_PH18-73_rgb` submodule
+- **System lights** (ring/logo/bar): requires the `acer_PH18-73_rgb` submodule
 - **Quit + keep lights:** Forks a background daemon that keeps streaming so your keyboard doesn't revert to the default rainbow
 
 ## Requirements
@@ -90,6 +99,28 @@ BULK  8 x 64 bytes              (128 main pixels as 00,R,G,B)
 CTRL  08 02 b3 05 32 08 09 fa   (main commit)
 CTRL  08 02 4f 05 32 08 01 66   (aux commit)
 ```
+
+## Tests
+
+The pure parts (checksums, bulk packet layout, every effect's frame shape) are covered by a
+stdlib `unittest` suite that needs no USB device and no display:
+
+```bash
+python3 -m unittest discover -s tests -v
+```
+
+## History and credits
+
+- **Original work (April 2026), Alex Huou.** Captured PredatorSense's USB traffic, worked out
+  the 0x12/0x13 envelope + commit protocol and the init handshake, and wrote `pypredator.py`
+  (USB layer, effect engine, Tk GUI, udev setup, keep-alive daemon) for his own PH18-73.
+- **Ring, logo and underglow bar** control is the
+  [acer_PH18-73_rgb](https://github.com/linuxbest/acer_PH18-73_rgb) CLI by linuxbest (MIT),
+  used unmodified as a submodule.
+- **Portfolio polish (October 2026, AI-assisted with Claude):** fixed the clone URL, added the
+  headless GUI recording and its script, the hardware-free test suite, and this section.
+  No change to `pypredator.py` itself. The recording uses a stub keyboard, so it shows the GUI
+  and the frames, not the physical LEDs.
 
 ## License
 
